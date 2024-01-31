@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-abi-exporter";
+require("dotenv").config();
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -42,6 +43,19 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+  },
+  networks: {
+    hardhat: {
+      forking: {
+        url: "https://sepolia.blast.io", //mainnet
+      },
+    },
+    blastTest: {
+      url: "https://sepolia.blast.io",
+      accounts: [
+        process.env.PK_DEPLOYER_WALLET!, //Blasted Deployer
+      ],
+    },
   },
   abiExporter: {
     path: "./abi",
