@@ -6,14 +6,15 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 contract GasTracker {
     using EnumerableSet for EnumerableSet.AddressSet;
     EnumerableSet.AddressSet private users;
-    mapping(address => mapping(uint256 => uint256)) public userDailyGas;
+    mapping(address => UserData) private userData;
     mapping(uint256 => uint256) public totalGasPerDayUsed;
-    mapping(address => uint256) public startGas;
-    mapping(address => uint256) public gasSpent;
-
     uint256 public contractDeployedTime;
     uint256 public totalGasUsed;
 
+    struct UserData {
+        mapping(uint256 => uint256) dailyGas;
+        uint256 startGas;
+    }
     constructor() {
         contractDeployedTime = block.timestamp;
     }
@@ -23,22 +24,18 @@ contract GasTracker {
     }
 
     function trackGasUsageStart() internal {
-        startGas[msg.sender] = gasleft();
-        uint256 currentDay = getCurrentDay();
-        users.add(msg.sender);
-        gasSpent[msg.sender] = startGas[msg.sender] - gasleft();
-        userDailyGas[msg.sender][currentDay] += gasSpent[msg.sender];
+        address caller = msg.sender;
+        userData[caller].startGas = gasleft();
+        users.add(caller);
     }
 
     function trackGasUsageEnd() internal {
+        address caller = msg.sender;
         uint256 currentDay = getCurrentDay();
-        gasSpent[msg.sender] = startGas[msg.sender] - gasleft();
-        userDailyGas[msg.sender][currentDay] += gasSpent[msg.sender];
-        totalGasUsed += gasSpent[msg.sender];
-        totalGasPerDayUsed[currentDay] += gasSpent[msg.sender];
-        gasSpent[msg.sender] = 0;
-        startGas[msg.sender] = 0;
-
+        uint256 gasSpentLocal = userData[caller].startGas - gasleft();
+        userData[caller].dailyGas[currentDay] += gasSpentLocal;
+        totalGasUsed += gasSpentLocal;
+        totalGasPerDayUsed[currentDay] += gasSpentLocal;
     }
 
     function exampleFunction() public {
@@ -46,7 +43,6 @@ contract GasTracker {
         // logic here
         trackGasUsageEnd();
     }
-
 
     function getTotalUsers() public view returns (uint256) {
         return users.length();
