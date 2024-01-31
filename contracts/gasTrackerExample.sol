@@ -8,8 +8,8 @@ contract GasTracker {
     EnumerableSet.AddressSet private users;
     mapping(address => mapping(uint256 => uint256)) public userDailyGas;
     mapping(uint256 => uint256) public totalGasPerDayUsed;
-    mapping(address => uint256) public startGas;
-    mapping(address => uint256) public gasSpent;
+    mapping(address => uint256) private startGas;
+    mapping(address => uint256) private gasSpent;
 
     uint256 public contractDeployedTime;
     uint256 public totalGasUsed;
