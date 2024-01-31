@@ -36,9 +36,6 @@ contract GasTracker {
         userDailyGas[msg.sender][currentDay] += gasSpent[msg.sender];
         totalGasUsed += gasSpent[msg.sender];
         totalGasPerDayUsed[currentDay] += gasSpent[msg.sender];
-        gasSpent[msg.sender] = 0;
-        startGas[msg.sender] = 0;
-
     }
 
     function exampleFunction() public {
