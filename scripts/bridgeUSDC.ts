@@ -3,6 +3,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { setBalance, time } from "@nomicfoundation/hardhat-network-helpers";
 import { GasClaimer } from "../typechain-types";
 import IBlastABI from "../abi/contracts/interfaces/IBlast.sol/IBlast.json";
+import { abi as ERC20ABI } from "@openzeppelin/contracts/build/contracts/IERC20.json";
 
 const {
   parseEther,
@@ -14,13 +15,28 @@ const {
   provider,
 } = ethers;
 
-let gasClaimer: GasClaimer;
 let deployer: HardhatEthersSigner;
 let tx, receipt;
 
-const BlastContract = new Contract(
-  "0x4300000000000000000000000000000000000002",
-  IBlastABI,
+const USDCBridgeABI = [
+  "function bridgeERC20To(address _localToken,address _remoteToken,address to,uint256 _amount,uint32 _minGasLimit,bytes calldata _extraData) public",
+];
+
+const USDCBridgeContract = new Contract(
+  "0xc644cc19d2A9388b71dd1dEde07cFFC73237Dca8",
+  USDCBridgeABI,
+  provider
+);
+
+const USDCContract = new Contract(
+  "0x7f11f79DEA8CE904ed0249a23930f2e59b43a385",
+  ERC20ABI,
+  provider
+);
+
+const USDBContract = new Contract(
+  "0x4200000000000000000000000000000000000022",
+  ERC20ABI,
   provider
 );
 
@@ -37,57 +53,29 @@ const setAddresses = async () => {
   console.log(`Deployer: ${deployer.address}`);
 };
 
-const deployContracts = async () => {
-  console.log("\n*** DEPLOYING CONTRACTS ***");
-  gasClaimer = await deployContract("GasClaimer", [], deployer);
-  await gasClaimer.waitForDeployment();
-  console.log(`GasClaimer deployed to ${gasClaimer.target}`);
-};
-
-const attachContracts = async () => {
-  console.log("\n*** ATTACHING CONTRACTS ***");
-  const GasClaimer = await ethers.getContractFactory("GasClaimer", deployer);
+const bridgeUSDC = async () => {
+  console.log("\n*** BRIDGING USDC ***");
+  const balance = await USDCContract.balanceOf(deployer.address);
   //@ts-ignore
-  gasClaimer = GasClaimer.attach(process.env.DEPLOYED_GAS_CLAIMER);
-  console.log(`GasClaimer attached to ${gasClaimer.target}`);
-};
-
-const wasteGas = async (loop: number) => {
-  console.log("\n*** WASTING GAS ***");
-  tx = await gasClaimer.wasteGas(loop);
-  receipt = await tx.wait();
-};
-
-const readGasParams = async () => {
-  console.log("\n*** READING GAS PARAMS ***");
-  const [etherSeconds, etherBalance, lastUpdated, GasMode] =
-    await BlastContract.readGasParams(gasClaimer.target);
-  console.log({ etherSeconds, etherBalance, lastUpdated, GasMode });
-  // const gasStart = await gasClaimer.balanceGasStart();
-  // const gasFinish = await gasClaimer.balanceGasFinish();
-  // console.log({ gasStart, gasFinish });
-};
-
-const claimGas = async () => {
-  console.log("\n*** CLAIMING ALL GAS ***");
-  //@ts-ignore
-  tx = await BlastContract.connect(deployer).claimAllGas(
-    gasClaimer.target,
-    deployer.address
+  tx = await USDCBridgeContract.connect(deployer).bridgeERC20To(
+    "0x7f11f79DEA8CE904ed0249a23930f2e59b43a385",
+    "0x4200000000000000000000000000000000000022",
+    deployer.address,
+    balance,
+    500000,
+    "0x"
   );
   receipt = await tx.wait();
+  console.log("Balance After:", await USDCContract.balanceOf(deployer.address));
 };
 
 const main = async () => {
   await showGwei();
   await setAddresses();
   const balanceStart = await provider.getBalance(deployer.address);
-  // await deployContracts();
-  await attachContracts();
-  // await wasteGas(10000);
-  await readGasParams();
-  await claimGas();
-  await readGasParams();
+  //   await bridgeUSDC();
+  console.log("Balance USDB:", await USDBContract.balanceOf(deployer.address));
+
   const balanceFinish = await provider.getBalance(deployer.address);
   console.log(
     "Balance used:",

@@ -47,11 +47,18 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: "https://sepolia.blast.io", //mainnet
+        // url: "https://sepolia.blast.io", //blastTestnet
+        url: "https://rpc.sepolia.org", //ethTestnet
       },
     },
     blastTest: {
       url: "https://sepolia.blast.io",
+      accounts: [
+        process.env.PK_DEPLOYER_WALLET!, //Blasted Deployer
+      ],
+    },
+    ethTest: {
+      url: "https://rpc.sepolia.org",
       accounts: [
         process.env.PK_DEPLOYER_WALLET!, //Blasted Deployer
       ],
